@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loja de Games</title>
+</head>
+<body>
+    <h2>Login <button type="button" onClick="recarregarAPagina()">Atualizar Página</button></h2>
+    <input type="text" name="email" id="email" placeholder="exemplo@teste.com.br"><br>
+    <input type="password" name="password" id="password" placeholder="********">
+    <button type="button" onclick="login()">Entrar</button>
+    <button type="button" onclick="logout()">Sair</button>
+    <hr>
+    <h4>Lista de games</h4> 
+    <ul id="games"></ul>
+    <hr>
+    <h4>Novo Game</h4>
+    <input type="text" name="title" id="title" placeholder="Título"><br>
+    <input type="number" name="year" id="year" placeholder="Ano"><br>
+    <input type="number" name="price" id="price" placeholder="Preço"><br>
+    <button type="button" onclick="createGame()">Criar</button>
+    <hr>
+    <h4>Editar Game</h4> 
+    <input type="text" name="idEdit" id="idEdit" placeholder="ID" readonly><br>
+    <input type="text" name="titleEdit" id="titleEdit" placeholder="Título"><br>
+    <input type="number" name="yearEdit" id="yearEdit" placeholder="Ano"><br>
+    <input type="number" name="priceEdit" id="priceEdit" placeholder="Preço"><br>
+    <button type="button" onclick="updateGame()">Editar</button> 
+</body>
+<script src="https://unpkg.com/axios@1.6.7/dist/axios.min.js"></script>
+<script>
+    function recarregarAPagina(){
+        window.location.reload()
+    }
+
+    let axiosConfig = {
+        headers: {
+            Authorization: 'Bearer ' + localStorage.getItem('token')
+        }
+    }
+
+    function login(){
+        let emailField = document.getElementById('email')
+        let passwordField = document.getElementById('password')
+
+        let email = emailField.value
+        let password = passwordField.value
+
+        axios.post('http://localhost:8080/auth',{email,password}).then( res => {
+            let token = res.data.token
+            localStorage.setItem('token',token)
+            axiosConfig.headers.Authorization = 'Bearer ' + localStorage.getItem('token')
+            recarregarAPagina()
+            alert('Logado com sucesso.')
+        }).catch( err => {
+            alert('Login incorreto.')
+        })
+
+    }
+
+    function logout(){
+        localStorage.setItem('token','')
+        axiosConfig.headers.Authorization = ''
+        recarregarAPagina()
+        alert('Você saiu do sistema')
+    }
+
+    function deleteItem(itemlist){
+        let id = itemlist.getAttribute('data-id')
+        
+        axios.delete('http://localhost:8080/game/'+id).then( res => {
+            alert('Game deletado com sucesso.')
+        }).catch( error => {
+            console.log(error)
+        })
+    }
+
+    function loadForm(itemList){
+        let id = itemList.getAttribute('data-id')
+        let title = itemList.getAttribute('data-title')
+        let year = itemList.getAttribute('data-year')
+        let price = itemList.getAttribute('data-price')
+
+        document.getElementById('idEdit').value = id
+        document.getElementById('titleEdit').value = title
+        document.getElementById('yearEdit').value = year
+        document.getElementById('priceEdit').value = price
+    }
+
+    function createGame() {
+        let titleInput = document.getElementById('title')
+        let yearInput = document.getElementById('year')
+        let priceInput = document.getElementById('price')
+
+        let game = {
+            title : titleInput.value,
+            year: yearInput.value,
+            price: priceInput.value
+        }
+
+        axios.post('http://localhost:8080/game/'+id,game).then( res => {
+            if (res.status == 200) {
+                alert('Game cadastrado com sucesso!')
+            }
+        }).catch( erro => {
+            console.log(erro)
+        })
+    }
+
+    function updateGame(){
+        let idInput = document.getElementById('idEdit')
+        let titleInput = document.getElementById('titleEdit')
+        let yearInput = document.getElementById('yearEdit')
+        let priceInput = document.getElementById('priceEdit')
+
+        let game = {
+            title : titleInput.value,
+            year: yearInput.value,
+            price: priceInput.value
+        }
+
+        let id = idInput.value
+
+        axios.put('http://localhost:8080/game/'+id,game).then( res => {
+            if (res.status == 200) {
+                alert('Game atualizado com sucesso!')
+            }
+        }).catch( erro => {
+            console.log(erro)
+        }) 
+    }
+
+    axios.get('http://localhost:8080/games',axiosConfig).then( res => {
+        let games = res.data
+        let list = document.getElementById('games')
+
+        games.forEach( game => {
+            let item = document.createElement('li')
+            item.innerHTML = game.title + ' - R$' + game.price 
+
+            //Setando atributos de cada item da lista
+            item.setAttribute('data-id',game.id)
+            item.setAttribute('data-title',game.title)
+            item.setAttribute('data-year',game.year)
+            item.setAttribute('data-price',game.price)
+            
+            //Botão de deletar
+            let deleteBtn = document.createElement('button')
+            deleteBtn.innerHTML = 'Deletar'
+
+            deleteBtn.addEventListener('click', () => {
+                deleteItem(item)
+            })
+
+            //Botão de editar
+            let editBtn = document.createElement('button')
+            editBtn.innerHTML = 'Editar'
+            editBtn.addEventListener('click', () => {
+                loadForm(item)
+            })
+            
+            //Adicionando botões e elemento da lista
+            item.appendChild(deleteBtn)
+            item.appendChild(editBtn)
+            list.appendChild(item)
+        })
+    }).catch( error => {
+        console.log(error)
+    })
+</script>
+</html>
